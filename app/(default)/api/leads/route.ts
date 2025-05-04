@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import connectMongoDB from "@/lib/dbConnect";
 import Leadsmodel from "@/models/Leads";
+import { cloudinary } from '@/Cloudinary';
 
 // Interface for Lead
 interface Lead {
@@ -35,7 +36,20 @@ function validateLeadData(leadData: any): string | null {
   }
   return null;
 }
-
+/**
+ * @swagger
+ * /api/leads:
+ *   get:
+ *     summary: Fetch all leads
+ *     description: Retrieves a list of all current and alumni leads.
+ *     tags:
+ *      - Leads
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved leads
+ *       500:
+ *         description: Error fetching leads
+ */
 export async function GET(request: Request) {
   try {
     await connectMongoDB();
@@ -63,7 +77,22 @@ export async function GET(request: Request) {
     );
   }
 }
-
+/**
+ * @swagger
+ * /api/leads:
+ *   post:
+ *     summary: Add a new lead
+ *     description: Creates a new lead and stores it in the database.
+ *     tags:
+ *      - Leads
+ *     responses:
+ *       201:
+ *         description: Successfully created lead
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Error creating lead
+ */
 // POST method: Add a new lead
 export async function POST(request: Request) {
   try {
@@ -81,8 +110,6 @@ export async function POST(request: Request) {
       ...leadData,
     });
 
-    console.log("New lead instance:", newLead);
-
     const savedLead = await newLead.save();
     return NextResponse.json(savedLead, { status: 201 });
   } catch (error) {
@@ -96,6 +123,24 @@ export async function POST(request: Request) {
     );
   }
 }
+/**
+ * @swagger
+ * /api/leads:
+ *   put:
+ *     summary: Update an existing lead
+ *     description: Updates an existing lead based on the provided ID.
+ *     tags:
+ *      - Leads
+ *     responses:
+ *       200:
+ *         description: Successfully updated lead
+ *       400:
+ *         description: Validation error or missing ID
+ *       404:
+ *         description: Lead not found
+ *       500:
+ *         description: Error updating lead
+ */
 // PUT method: Update an existing lead
 export async function PUT(request: Request) {
   try {
@@ -104,7 +149,7 @@ export async function PUT(request: Request) {
     const id = searchParams.get("id");
     const user = await Leadsmodel.findOne({ id });
     const _id = user._id;
-    console.log(_id);
+    
     if (!id) {
       return NextResponse.json(
         { error: "Lead ID is required" },
@@ -123,7 +168,7 @@ export async function PUT(request: Request) {
       { ...leadData },
       { new: true }
     );
-    console.log(updatedLead);
+    
     if (!updatedLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
@@ -142,6 +187,24 @@ export async function PUT(request: Request) {
 }
 
 // DELETE method: Remove an existing lead
+/**
+ * @swagger
+ * /api/leads:
+ *   delete:
+ *     summary: Remove an existing lead
+ *     description: Deletes a lead based on the provided ID.
+ *     tags:
+ *      - Leads
+ *     responses:
+ *       200:
+ *         description: Successfully deleted lead
+ *       400:
+ *         description: Missing ID
+ *       404:
+ *         description: Lead not found
+ *       500:
+ *         description: Error deleting lead
+ */
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -154,21 +217,49 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const deletedLead = await Leadsmodel.findOneAndDelete({ id });
-
+    const deletedLead = await Leadsmodel.findOne({ id });
+    
     if (!deletedLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ id }, { status: 200 });
-  } catch (error) {
-    console.error("Error deleting lead:", error);
+    // If there's an image URL, delete it from Cloudinary
+    if (deletedLead.imageUrl) {
+      try {
+        // Extract the filename from URL
+        const urlParts = deletedLead.imageUrl.split('/');
+        const filename = urlParts[urlParts.length - 1].split('.')[0];
+        
+        // Format the public ID as shown in your console
+        const publicId = `leads/${deletedLead.name}-${filename.split('-').pop()}`;
+        
+        // Delete the image
+        const result = await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary delete result:", result);
+      } catch (cloudinaryError) {
+        console.error("Error deleting image from Cloudinary:", cloudinaryError);
+        // Continue with lead deletion even if image deletion fails
+      }
+    }
+
+    await Leadsmodel.deleteOne({ id });
     return NextResponse.json(
-      {
-        error: "An error occurred while deleting the lead",
-        details: (error as Error).message,
-      },
-      { status: 500 }
+      { message: "Lead deleted successfully" },
+      { status: 200 }
     );
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error deleting lead:", error.message);
+      return NextResponse.json(
+        { error: "An error occurred while deleting the lead", details: error.message },
+        { status: 500 }
+      );
+    } else {
+      console.error("Unknown error:", error);
+      return NextResponse.json(
+        { error: "An unknown error occurred" },
+        { status: 500 }
+      );
+    }
   }
 }

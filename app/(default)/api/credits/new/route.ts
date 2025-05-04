@@ -8,6 +8,49 @@ cloudinary.v2.config({
     api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
     api_secret: process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
 });
+/**
+ * @swagger
+ * /api/credit:
+ *   post:
+ *     summary: Create a new credit entry
+ *     description: Uploads an image to Cloudinary and creates a new credit entry in the database.
+ *     tags:
+ *      - Credits
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the credit entry
+ *               githubUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: GitHub profile URL of the contributor
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file to be uploaded
+ *     responses:
+ *       201:
+ *         description: Successfully created the credit entry
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 credit:
+ *                   type: object
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Internal server error
+ */
 
 // Helper function to upload to Cloudinary using a buffer
 function uploadToCloudinary(fileBuffer: Buffer): Promise<{ secure_url: string; public_id: string }> {

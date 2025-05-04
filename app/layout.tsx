@@ -28,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
-      
+      <meta name="google-site-verification" content="zWannxDP9lamkzRzClm_XzptP358-K_1YHVz6adUrnQ" />
       <body
         className={`${inter.variable} font-inter antialiased bg-black text-white tracking-tight`}
       >

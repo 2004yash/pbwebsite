@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/Firebase";
 import { useStore } from "@/lib/zustand/store";
+import LoadingBrackets from "@/components/ui/loading-brackets";
+import { convertToWebP } from "@/utils/webpImages";
 
 interface Lead {
   id?:string;
@@ -14,9 +16,10 @@ interface Lead {
 }
 
 const Leads: React.FC = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  // const [isLoggedInLoggedIn, setLoggedInLoggedIn] = useState(false);
+  const { isLoggedIn , setLoggedIn } = useStore();
   const [currentLeads, setCurrentLeads] = useState<Lead[]>([]);
   const [alumniLeads, setAlumniLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null); // For editing leads
@@ -31,28 +34,25 @@ const Leads: React.FC = () => {
       const alumniLeads = data.alumniLeads;
       setCurrentLeads(currentLeads);
       setAlumniLeads(alumniLeads);
-      setLoading(false);
+      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching leads:", error);
-      setLoading(false);
+      setIsLoading(false);
     }
   };
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
-        try {
-          const resp = await fetch(`/api/admin?uid=${uid}`);
-          const data = await resp.json();
-          if (data.isAdmin) {
-            setIsAdminLoggedIn(true);
-          }
-        } catch (error) {
-          console.log("Error getting document:", error);
+      try {
+        if (user) {
+          setLoggedIn(true);
+        } else {
+          setLoggedIn(false);
         }
+      } catch (error) {
+        console.log("Error getting document:", error);
       }
     });
-  });
+  }, [isLoggedIn]);
 
   useEffect(() => {
     fetchLeads();
@@ -186,48 +186,56 @@ const Leads: React.FC = () => {
         color: "#fff",
       }}
     >
-      {isAdminLoggedIn && (
-        <button
-          onClick={toggleForm}
-          style={{
-            position: "fixed",
-            top: "85px",
-            right: "85px",
-            padding: "10px 20px",
-            backgroundColor: "#00ff33",
-            color: "#000",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            zIndex: 1000,
-          }}
-        >
-          {selectedLead ? "Edit Lead" : "Add Lead"}
-        </button>
-      )}
+      {loading ? (
+        <div className="flex justify-center items-center h-[50vh]">
+          <LoadingBrackets />
+        </div>
+      ) : (
+        <>
+          {isLoggedIn && (
+            <button
+              onClick={toggleForm}
+              style={{
+                position: "fixed",
+                top: "85px",
+                right: "85px",
+                padding: "10px 20px",
+                backgroundColor: "#00ff33",
+                color: "#000",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                zIndex: 1000,
+              }}
+            >
+              {selectedLead ? "Edit Lead" : "Add Lead"}
+            </button>
+          )}
 
-      {showForm && (
-        <LeadForm
-          closeForm={toggleForm}
-          selectedLead={selectedLead}
-          handleAddOrEditLead={handleAddOrEditLead} // Pass fetchLeads to the form for updating leads
-        />
-      )}
+          {showForm && (
+            <LeadForm
+              closeForm={toggleForm}
+              selectedLead={selectedLead}
+              handleAddOrEditLead={handleAddOrEditLead}
+            />
+          )}
 
-      <LeadSection
-        title="Current Leads"
-        leads={currentLeads}
-        onEdit={handleEditLead}
-        onDelete={handleDeleteLead}
-        isAdminLoggedIn={isAdminLoggedIn}
-      />
-      <LeadSection
-        title="Alumni Leads"
-        leads={alumniLeads}
-        onEdit={handleEditLead}
-        onDelete={handleDeleteLead}
-        isAdminLoggedIn={isAdminLoggedIn}
-      />
+          <LeadSection
+            title="Current Leads"
+            leads={currentLeads}
+            onEdit={handleEditLead}
+            onDelete={handleDeleteLead}
+            isLoggedInLoggedIn={isLoggedIn}
+          />
+          <LeadSection
+            title="Alumni Leads"
+            leads={alumniLeads}
+            onEdit={handleEditLead}
+            onDelete={handleDeleteLead}
+            isLoggedInLoggedIn={isLoggedIn}
+          />
+        </>
+      )}
     </section>
   );
 };
@@ -237,7 +245,7 @@ interface LeadSectionProps {
   leads: Lead[];
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
-  isAdminLoggedIn: boolean; // Added prop to handle admin check
+  isLoggedInLoggedIn: boolean; // Added prop to handle admin check
 }
 
 const LeadSection: React.FC<LeadSectionProps> = ({
@@ -245,7 +253,7 @@ const LeadSection: React.FC<LeadSectionProps> = ({
   leads,
   onEdit,
   onDelete,
-  isAdminLoggedIn,
+  isLoggedInLoggedIn,
 }) => (
   <div style={{ padding: "1rem", marginTop: "2rem" }}>
     <h3
@@ -275,7 +283,7 @@ const LeadSection: React.FC<LeadSectionProps> = ({
         <div
           key={lead.id}
           style={{
-            backgroundImage: `url(${lead.imageUrl})`,
+            backgroundImage: convertToWebP(`url(${lead.imageUrl})`),
             backgroundSize: "cover",
             backgroundPosition: "center",
             borderRadius: "15px",
@@ -283,15 +291,15 @@ const LeadSection: React.FC<LeadSectionProps> = ({
             width: "250px",
             position: "relative",
             overflow: "hidden",
-            cursor: isAdminLoggedIn ? "pointer" : "default", // Change cursor if admin is logged in
+            cursor: isLoggedInLoggedIn ? "pointer" : "default", // Change cursor if admin is logged in
           }}
           onMouseEnter={(e) =>
-            isAdminLoggedIn && (e.currentTarget.style.transform = "scale(1.05)")
+            isLoggedInLoggedIn && (e.currentTarget.style.transform = "scale(1.05)")
           }
           onMouseLeave={(e) =>
-            isAdminLoggedIn && (e.currentTarget.style.transform = "scale(1)")
+            isLoggedInLoggedIn && (e.currentTarget.style.transform = "scale(1)")
           }
-          onClick={() => isAdminLoggedIn && onEdit(lead)} // Only allow edit on click if admin
+          onClick={() => isLoggedInLoggedIn && onEdit(lead)} // Only allow edit on click if admin
         >
           <div
             style={{
@@ -312,7 +320,7 @@ const LeadSection: React.FC<LeadSectionProps> = ({
             <p style={{ margin: "0", fontSize: "1rem" }}>
               {lead.additionalInfo}
             </p>
-            {isAdminLoggedIn && (
+            {isLoggedInLoggedIn && (
               <button
               onClick={(e) => {
                 e.stopPropagation();

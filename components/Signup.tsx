@@ -23,13 +23,18 @@ const Signup = () => {
       event.preventDefault();
       setSignupError(''); // Clear previous errors
       setDbError('');   // Clear previous database errors
+
+      if (!email.endsWith("@pointblank.club")) {
+        setSignupError("Access not granted!");
+        return;
+      }    
   
       if (password !== confirmPassword) {
         setSignupError('Passwords do not match');
         return;
       }
   
-      if (role === 'admin' && secretCode !== process.env.NEXT_PUBLIC_ADMIN_SECRET_CODE) {
+      if (secretCode !== process.env.NEXT_PUBLIC_ADMIN_SECRET_CODE) {
         setSignupError('Invalid secret code for admin');
         return;
       }
@@ -38,30 +43,33 @@ const Signup = () => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
   
-        if (role === 'admin') {
-          try {
-            await fetch ('/api/admin', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                email,
-                role,
-                userId: user.uid,
-              }),
-            });
+        // if (role === 'admin') {
+        //   try {
+        //     await fetch ('/api/admin', {
+        //       method: 'POST',
+        //       headers: {
+        //         'Content-Type': 'application/json',
+        //       },
+        //       body: JSON.stringify({
+        //         email,
+        //         role,
+        //         userId: user.uid,
+        //       }),
+        //     });
   
-            setSuccess('Successfully signed up!');
-            window.location.reload(); // Redirect to login after successful signup
-          } catch (dbErr) {
-            setDbError('Failed to save user data to the database');
-            console.error('Database error:', dbErr);
-          }
-        } else {
+        //     setSuccess('Successfully signed up!');
+        //     window.location.reload(); // Redirect to login after successful signup
+        //   } catch (dbErr) {
+        //     setDbError('Failed to save user data to the database');
+        //     console.error('Database error:', dbErr);
+        //   }
+        // } else {
+
           setSuccess('Successfully signed up!');
           window.location.reload(); // Redirect to login page after successful signup
-        }
+
+
+        // }
       } catch (signupErr: any) {
         setSignupError(signupErr.message || 'Failed to sign up');
         console.error('Signup error:', signupErr);
@@ -125,7 +133,7 @@ const Signup = () => {
               Confirm Password
             </label>
           </div>
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <label className="block mb-2 text-white font-semibold">Sign up as:</label>
             <div className="flex items-center">
               <input
@@ -150,7 +158,7 @@ const Signup = () => {
               <label htmlFor="admin" className="text-white">Admin</label>
             </div>
           </div>
-          {role === 'admin' && (
+          {role === 'admin' && ( */}
             <div className="relative mb-6">
               <input
                 type="text"
@@ -170,7 +178,7 @@ const Signup = () => {
                 Secret Code
               </label>
             </div>
-          )}
+          {/* )} */}
           <div className="mb-4">
             <button
               type="submit"

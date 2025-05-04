@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import ClipLoader from "react-spinners/ClipLoader";
 import { FaEllipsisV } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/Firebase";
 import Image from "next/image";
 import Card from "./ui/Card";
 import CollapsibleSection from "./ui/CollapsibleSection";
-import { useStoreMember } from "@/lib/zustand/store";
+import { useStore } from "@/lib/zustand/store";
+import LoadingBrackets from "@/components/ui/loading-brackets";
 
 interface Member {
   id?: string;
@@ -46,7 +46,7 @@ export default function Members() {
     imageUrl: "",
   });
 
-  const { image, setImage } = useStoreMember();
+  const { image, setImage } = useStore();
 
   const [menuVisible, setMenuVisible] = useState<{ [key: string]: boolean }>(
     {}
@@ -57,25 +57,21 @@ export default function Members() {
     setOpenIndex(openIndex === index ? -1 : index);
   };
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isLoggedIn, setLoggedIn } = useStore();
 
   useEffect(() => {
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
-        try {
-          const resp = await fetch(`/api/admin?uid=${uid}`);
-          const data = await resp.json();
-          if (data.isAdmin) {
-            setIsAdmin(true);
-          }
-        } catch (error) {
-          console.log("Error getting document:", error);
+    onAuthStateChanged(auth, async (user : any) => {
+      try {
+        if (user) {
+          setLoggedIn(true);
+        } else {
+          setLoggedIn(false);
         }
+      } catch (error) {
+        console.log("Error getting document:", error);
       }
     });
-  }),
-    [isAdmin];
+  }, [isLoggedIn]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -302,7 +298,7 @@ export default function Members() {
       <div className="w-full max-w-6xl px-2">
         {loading ? (
           <div className="flex justify-center py-10">
-            <ClipLoader color={"#00C853"} loading={loading} size={50} />
+            <LoadingBrackets/>
           </div>
         ) : (
           <div className="space-y-2">
@@ -356,7 +352,7 @@ export default function Members() {
                             imageUrl={profile.imageUrl || ""}
                           />
                           <div className="absolute top-2 right-2">
-                            {isAdmin ? (
+                            {isLoggedIn ? (
                               <button
                                 onClick={() => toggleMenu(profile.id || "")}
                                 className="bg-gray-800
@@ -397,7 +393,7 @@ export default function Members() {
           </div>
         )}
 
-        {isAdmin ? (
+        {isLoggedIn ? (
           <div className="flex justify-center mt-8">
             <button
               className="px-4 py-2 bg-green-600 text-white rounded-md"

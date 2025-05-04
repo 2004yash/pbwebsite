@@ -1,5 +1,7 @@
 "use client";
 
+import { useStore } from "@/lib/zustand/store";
+
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -9,23 +11,32 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/Firebase";
 
 export default function Header() {
-  const [top, setTop] = useState<boolean>(true);
+  const [top, setTop] = useState(true);
   const pathname = usePathname();
-
   const [loggedIn, setLoggedIn] = useState(false);
+  const { reset } = useStore();
 
   const handleLogout = async () => {
+    
     await auth.signOut();
     setLoggedIn(false);
-  };
+    reset();
+    
+  }
+
 
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setLoggedIn(true);
+      } else {
+        setLoggedIn(false);
       }
     });
-  });
+    
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
 
   // Detect whether the user has scrolled the page down by 10px
   const scrollHandler = () => {
@@ -135,17 +146,7 @@ export default function Header() {
                     </p>
                   </button>
                 ) : (
-                  <Link href="/login">
-                    <p
-                      className={`font-medium ${
-                        pathname === "/login"
-                          ? "font-extrabold text-white"
-                          : "text-gray-300"
-                      } hover:text-white px-2 lg:px-5 py-3 flex items-center transition duration-150 ease-in-out`}
-                    >
-                      Login
-                    </p>
-                  </Link>
+          <></>        
                 )}
               </li>
             </ul>

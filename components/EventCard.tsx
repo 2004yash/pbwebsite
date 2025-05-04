@@ -1,3 +1,4 @@
+import { convertToWebP } from "@/utils/webpImages";
 import Image from "next/image";
 
 interface EventCardProps {
@@ -12,7 +13,7 @@ interface EventCardProps {
     imageURL: string;
     registrationLink: string;
   };
-  isAdminLoggedIn: boolean;
+  isLoggedInLoggedIn: boolean;
   onDelete: (eventId: string) => void;
   onSelect: (event: {
     id: string;
@@ -29,7 +30,7 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({
   event,
-  isAdminLoggedIn,
+  isLoggedInLoggedIn,
   onDelete,
   onSelect,
 }) => {
@@ -46,7 +47,7 @@ const EventCard: React.FC<EventCardProps> = ({
       {/* Event Image */}
       <div className="relative">
         <Image
-          src={event.imageURL}
+          src={convertToWebP(event.imageURL)}
           alt={event.eventName}
           width={300}
           height={200}
@@ -69,7 +70,7 @@ const EventCard: React.FC<EventCardProps> = ({
         </p>
 
         {/* Admin Options */}
-        {isAdminLoggedIn && (
+        {isLoggedInLoggedIn && (
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={(e) => {

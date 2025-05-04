@@ -3,7 +3,51 @@ import { cloudinary } from "@/Cloudinary";
 import connectMongoDB from "@/lib/dbConnect";
 import Membersmodel from "@/models/Members";
 import { ObjectId } from "mongodb";
-
+import { convertToWebP } from "@/utils/webpImages";
+/**
+ * @swagger
+ * /api/members:
+ *   get:
+ *     summary: Retrieve all members
+ *     description: Fetches all members from the database and returns their details.
+ *     tags:
+ *      - Members
+ *     responses:
+ *       200:
+ *         description: A list of all members
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                   company:
+ *                     type: string
+ *                   year:
+ *                     type: string
+ *                   linkedInUrl:
+ *                     type: string
+ *                   imageUrl:
+ *                     type: string
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                 details:
+ *                   type: string
+ */
 // GET handler to retrieve all members
 export async function GET() {
   try {
@@ -16,7 +60,7 @@ export async function GET() {
       company: member.company || "",
       year: member.year,
       linkedInUrl: member.linkedInUrl || "",
-      imageUrl: member.imageUrl || "",
+      imageUrl: member.imageUrl ? convertToWebP(member.imageUrl): "",
     }));
 
     return NextResponse.json(members);
@@ -39,7 +83,76 @@ export async function GET() {
     }
   }
 }
-
+/**
+ * @swagger
+ * /api/members:
+ *   post:
+ *     summary: Add a new member
+ *     description: Adds a new member to the database with the provided details.
+ *     tags:
+ *      - Members
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               company:
+ *                 type: string
+ *               year:
+ *                 type: string
+ *               linkedInUrl:
+ *                 type: string
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Member added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Member added successfully"
+ *                 savedMember:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *       400:
+ *         description: Missing required field
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missing Name."
+ *                 error:
+ *                   type: boolean
+ *                   example: true
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to add member"
+ *                 error:
+ *                   type: boolean
+ *                   example: true
+ */
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -74,7 +187,88 @@ export async function POST(request: Request) {
     );
   }
 }
-
+/**
+ * @swagger
+ * /api/members:
+ *   put:
+ *     summary: Update an existing member
+ *     description: Updates the details of an existing member in the database.
+ *     tags:
+ *      - Members
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               company:
+ *                 type: string
+ *               year:
+ *                 type: string
+ *               linkedInUrl:
+ *                 type: string
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Member updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Member updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *       400:
+ *         description: "Missing required fields: 'id' and 'name' are mandatory."
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields: 'id' and 'name' are mandatory."
+ *                 error:
+ *                   type: boolean
+ *                   example: true
+ *       404:
+ *         description: Member not found with the provided ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No member found with ID: <id>"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to update member"
+ *                 error:
+ *                   type: boolean
+ *                   example: true
+ */
 // PUT handler to update an existing member
 export async function PUT(request: Request) {
   try {
@@ -92,20 +286,42 @@ export async function PUT(request: Request) {
       );
     }
 
+    // Find the existing member to get their current image URL
+    const existingMember = await Membersmodel.findOne({ _id: newid });
+    
+    if (!existingMember) {
+      return NextResponse.json(
+        { message: `No member found with ID: ${id}`, error: true },
+        { status: 404 }
+      );
+    }
+    
+    // Check if imageUrl is being updated
+    if (data.imageUrl && existingMember.imageUrl && data.imageUrl !== existingMember.imageUrl) {
+      try {
+        // Extract the name and timestamp from the URL
+        const urlParts = existingMember.imageUrl.split('/');
+        const filename = urlParts[urlParts.length - 1].split('.')[0];
+        
+        // Use the correct folder name "pbmembers" as used during upload
+        const publicId = `pbmembers/${filename}`;
+        
+        // Delete the old image from Cloudinary
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Old Cloudinary image deleted:", publicId);
+      } catch (error) {
+        console.error("Error during Cloudinary image deletion:", error);
+        // Continue with member update even if image deletion fails
+        console.log("Continuing with member update despite image deletion failure");
+      }
+    }
+
     // Update the member in the database
     const updatedData = await Membersmodel.findOneAndUpdate(
       { _id: newid },
       { ...data },
       { new: true }
     );
-
-    // Check if the member was found and updated
-    if (!updatedData) {
-      return NextResponse.json(
-        { message: `No member found with ID: ${id}`, error: true },
-        { status: 404 }
-      );
-    }
 
     // Return success response
     return NextResponse.json(
@@ -123,7 +339,33 @@ export async function PUT(request: Request) {
     );
   }
 }
-
+/**
+ * @swagger
+ * /api/members:
+ *   delete:
+ *     summary: Delete a member and their image
+ *     description: Deletes a member from the database along with their associated image from Cloudinary.
+ *     tags:
+ *      - Members
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Member and image deleted successfully
+ *       400:
+ *         description: Missing member ID
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
 // DELETE handler to delete a member and their image
 export async function DELETE(request: Request) {
   try {
@@ -157,28 +399,18 @@ export async function DELETE(request: Request) {
     // If the member has an associated image URL, delete it from Cloudinary
     if (imageUrl) {
       try {
-        // Extract the public_id from the Cloudinary image URL
-        const publicId = imageUrl.split("/").pop()?.split(".")[0]; // Extracts the file name without extension
-
-        if (publicId) {
-          // Delete the image from Cloudinary
-          await cloudinary.uploader.destroy(
-            `members/${publicId}`,
-            (error, result) => {
-              if (error) {
-                console.error("Error deleting image from Cloudinary:", error);
-                throw new Error("Failed to delete image from Cloudinary");
-              }
-              console.log("Cloudinary deletion result:", result);
-            }
-          );
-        }
+        // Extract the name and timestamp from the URL
+        const urlParts = imageUrl.split('/');
+        const filename = urlParts[urlParts.length - 1].split('.')[0];
+        const publicId = `pbmembers/${filename}`;
+        
+        // Delete the image from Cloudinary
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary image deleted:", publicId);
       } catch (error) {
         console.error("Error during Cloudinary image deletion:", error);
-        return NextResponse.json(
-          { message: "Failed to delete image from storage", error: true },
-          { status: 500 }
-        );
+        // Continue with member deletion even if image deletion fails
+        console.log("Continuing with member deletion despite image deletion failure");
       }
     }
 

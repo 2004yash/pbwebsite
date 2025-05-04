@@ -9,6 +9,69 @@ import { UploadApiResponse } from "cloudinary";
  * @param {Request} request - The incoming HTTP request
  * @returns {Promise<Response>} - A response containing the uploaded image URL or an error message
  */
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload an image file to Cloudinary
+ *     description: This endpoint handles image file uploads and uploads the file to Cloudinary.
+ *     tags:
+ *      - Members
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to be uploaded.
+ *               name:
+ *                 type: string
+ *                 description: The name to use for the uploaded file.
+ *               existingUrl:
+ *                 type: string
+ *                 description: The URL of an existing image to be replaced.
+ *     responses:
+ *       200:
+ *         description: Successfully uploaded the image
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imageUrl:
+ *                   type: string
+ *                   description: The secure URL of the uploaded image
+ *       400:
+ *         description: Bad request, no file uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Bad Request"
+ *                 details:
+ *                   type: string
+ *                   example: "No file uploaded"
+ *       500:
+ *         description: Internal server error during upload
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Cloudinary Upload Failed"
+ *                 details:
+ *                   type: string
+ *                   example: "Unknown upload error"
+ */
 export async function POST(request: Request): Promise<Response> {
   try {
     // Parse the form data from the incoming request
@@ -16,9 +79,11 @@ export async function POST(request: Request): Promise<Response> {
 
     // Retrieve the uploaded file from the form data
     const image: File | null = formData.get("file") as File;
+    const name: string | null = formData.get("name") as string;
+    const existingUrl: string | null = formData.get("existingUrl") as string;
 
     // Validate if a file was uploaded
-    if (!image) {
+    if (!image || !name) {
       return NextResponse.json(
         {
           message: "Bad Request",
@@ -27,6 +92,22 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400 } // HTTP 400 Bad Request
       );
     }
+
+    // If there's an existing image, extract its public_id and delete it
+    if (existingUrl) {
+      try {
+        const publicId = existingUrl.split('/').slice(-1)[0].split('.')[0];
+        if (publicId) {
+          await cloudinary.uploader.destroy(`pbmembers/${publicId}`);
+        }
+      } catch (deleteError) {
+        console.error("Error deleting existing image:", deleteError);
+        // Continue with upload even if delete fails
+      }
+    }
+
+    // Generating a unique public_id using the name and timestamp
+    const uniquePublicId = `${name}-${Date.now()}`;
 
     // Convert the uploaded file (File object) to a Buffer
     const arrayBuffer = await image.arrayBuffer();
@@ -40,7 +121,11 @@ export async function POST(request: Request): Promise<Response> {
       const uploadResult: UploadApiResponse = await new Promise(
         (resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "members" }, // Optional: specify a folder in Cloudinary
+            { 
+              folder: "pbmembers", 
+              public_id: uniquePublicId,
+              overwrite: false // Prevent accidental overwrites
+            },
             (error, result) => {
               if (error || !result) {
                 reject(error); // Handle upload errors

@@ -35,7 +35,7 @@
     "types",
     "utils/cn.jsx",
     ".next/types/**/*.ts"
-  ],
+, "lib/server/vjudgeParser.ts", "lib/server/test.mjs"  ],
   "exclude": [
     "node_modules",
     ".next"

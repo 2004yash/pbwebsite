@@ -1,17 +1,28 @@
 // store/useStore.ts
+"use client";
+
 import {create} from 'zustand';
 
 interface SharedState {
-  image: string | File | null| Blob; // Store image as base64 string or Blob URL
-  setImage: (image: string | File|Blob) => void; // Function to update the image
+  image: string | File | null | Blob;
+  setImage: (image: string | File | Blob) => void; 
+  isLoggedIn: boolean; 
+  setLoggedIn: (isLoggedIn: boolean) => void; 
+  reset: () => void; 
 }
 
 export const useStore = create<SharedState>((set) => ({
   image: null,
-  setImage: (image) => set({ image }), // Set the image in state
+  setImage: (image) => set({ image }), 
+  isLoggedIn: false,
+  setLoggedIn: (isLoggedIn) => set({ isLoggedIn }), 
+  reset: () => set({ image: null, isLoggedIn: false }),
 }));
 
-export const useStoreMember = create<SharedState>((set) => ({
-  image: null,
-  setImage: (image) => set({ image }), // Set the image in state
-}));
+// export const useStoreMember = create<SharedState>((set) => ({
+//   image: null,
+//   setImage: (image) => set({ image }),
+//   isLoggedIn: false,
+//   setLoggedIn: (isLoggedIn) => set({ isLoggedIn }), 
+//   reset: () => set({ image: null, isLoggedIn: false }),
+// }));

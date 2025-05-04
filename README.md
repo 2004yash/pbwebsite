@@ -67,12 +67,16 @@ infisical run -- npm run dev
 2. Create a new branch for your feature or bug fix:  
    ```bash
    git checkout -b feature/<feature-name>
-   ```  
-3. Make your changes and commit them:  
+   ```
+3.  Stage the files for commit:
+    ```bash
+    git add <file_name>  # Or use "git add ." to stage all changes
+    ``` 
+4. Make your changes and commit them:  
    ```bash
    git commit -m "Add feature: <feature-description>"
-   ```  
-4. Push your branch and submit a Pull Request to the main repository:  
+   ```
+4. Push your branch and submit a Pull Request to the ***staging*** repository:  
    ```bash
    git push origin feature/<feature-name>
    ```  
@@ -81,9 +85,38 @@ Check the [Issues](https://github.com/pbdsce/pbwebsite/issues) page for tasks yo
 
 ---
 
+## **GitHub Bot Commands**
+
+Use these commands in comments on issues and pull requests to perform common tasks:
+
+### **Issue Command Bot (for GitHub Issues)**
+- `/assign [@username]` - Assigns the issue to yourself or a specified user
+- `/close` - Closes the issue
+- `/reopen` - Reopens the issue
+- `/label [label-name]` - Adds a custom label to the issue
+- `/help` - Adds the "help wanted" label to the issue
+- `/needs-triage` - Adds the "needs-triage" label to the issue
+- `/lgtm` - Adds the "LGTM" (Looks Good To Me) label to the issue (cannot be used by issue author)
+- `/cc @user1 @user2` - Mentions specified users in the issue to bring it to their attention
+
+### **PR Command Bot (for Pull Requests)**
+- `/assign [@username]` - Requests review from yourself or a specified user
+- `/close` - Closes the pull request
+- `/reopen` - Reopens the pull request
+- `/label [label-name]` - Adds a custom label to the pull request
+- `/help` - Adds the "help wanted" label to the pull request
+- `/needs-triage` - Adds the "needs-triage" label to the pull request
+- `/lgtm` - Adds the "LGTM" (Looks Good To Me) label to approve the PR (cannot be used by PR author)
+- `/cc @user1 @user2` - Requests reviews from specified users
+
+Additionally, the PR Command Bot automatically processes:
+- `/kind:[type]` or `/kind [type]` in PR descriptions to add kind labels (e.g., kind/bug, kind/feature)
+
+---
+
 ## **Contact**  
 If you have any questions or need assistance, feel free to reach out to the maintainers.  
 
-Let’s build something amazing! 🚀  
+Let's build something amazing! 🚀  
 
----  
+---

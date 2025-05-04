@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Trophy, RefreshCw, TableProperties } from "lucide-react";
 import { auth } from "../../../Firebase"; // Firebase setup
 import { onAuthStateChanged } from "firebase/auth";
+import { useStore} from "@/lib/zustand/store";
+import LoadingBrackets from "@/components/ui/loading-brackets";
 
 interface Result {
   rank: number;
@@ -15,11 +17,12 @@ interface Result {
 
 export default function ResultsTable() {
   const [tab, setTab] = useState<"latest" | "rankings">("latest");
-  const [isAdmin, setIsAdmin] = useState(false);
+  // const [isLoggedIn, setLoggedIn] = useState(false);
   const [latestResults, setLatestResults] = useState<Result[]>([]);
   const [rankings, setRankings] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  // const [isLoggedInLoggedIn, setLoggedInLoggedIn] = useState(false);
+  const { isLoggedIn , setLoggedIn } = useStore();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -53,32 +56,29 @@ export default function ResultsTable() {
       }
     };
 
-    const checkAdmin = async (uid: string) => {
-      try {
-        const response = await fetch(`/api/admin?uid=${uid}`);
-        const { isAdmin } = await response.json();
-        setIsAdmin(isAdmin);
-        setIsAdminLoggedIn(true);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setIsAdmin(false);
-        setIsAdminLoggedIn(false);
-      }
-    };
+    // const checkAdmin = async (uid: string) => {
+    //   try {
+    //     const response = await fetch(`/api/admin?uid=${uid}`);
+    //     const { isLoggedIn } = await response.json();
+    //     setLoggedIn(isLoggedIn);
+    //   } catch (error) {
+    //     console.error("Error checking admin status:", error);
+    //     setLoggedIn(false);
+    //   }
+    // };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        checkAdmin(user.uid);
+        setLoggedIn(true);
       } else {
-        setIsAdmin(false);
-        setIsAdminLoggedIn(false);
+        setLoggedIn(false);
       }
     });
 
     fetchData();
 
     return () => unsubscribe();
-  }, []);
+  }, [isLoggedIn]);
 
   const handleGetResults = async () => {
     try {
@@ -167,7 +167,7 @@ export default function ResultsTable() {
             </button>
           ))}
         </div>
-        {isAdmin && isAdminLoggedIn && tab === "latest" && (
+        {isLoggedIn && isLoggedIn && tab === "latest" && (
           <div className="flex justify-center mb-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -188,7 +188,7 @@ export default function ResultsTable() {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#00FF66]"></div>
+            <LoadingBrackets />
           </div>
         ) : (
           <>

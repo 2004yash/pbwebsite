@@ -17,7 +17,7 @@ export default function PinPage() {
   const [isEditingEdit, setIsEditingEdit] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState(null);
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
@@ -26,8 +26,10 @@ export default function PinPage() {
         try {
           const resp = await fetch(`/api/admin?uid=${uid}`);
           const data = await resp.json();
-          if (data.isAdmin) {
-            setIsAdmin(true);
+          if (data.isLoggedIn) {
+            setLoggedIn(true);
+          } else {
+            setLoggedIn(false);
           }
         } catch (error) {
           console.log("Error getting document:", error);
@@ -186,7 +188,7 @@ export default function PinPage() {
 
       {/* Grid container */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-[10px] items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-[10px] items-start z-10">
         {!isLoading &&
           !error &&
           [...contributors]
@@ -251,7 +253,7 @@ export default function PinPage() {
             ))}
       </div>
 
-      {isAdmin && (
+      {isLoggedIn && (
         <div className="w-full flex justify-center mt-10">
           <button
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500 transition"

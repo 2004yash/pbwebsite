@@ -1,6 +1,37 @@
 import connectMongoDB from '@/lib/dbConnect';
 import Credit from '@/models/Credit';
-
+/**
+ * @swagger
+ * /api/credit/{id}:
+ *   patch:
+ *     summary: Update a credit entry
+ *     description: Updates a credit entry in the database by its ID.
+ *     tags:
+ *      - Credits
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the credit entry to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       200:
+ *         description: Successfully updated the credit entry
+ *       400:
+ *         description: ID is required
+ *       404:
+ *         description: Credit not found
+ *       500:
+ *         description: Internal server error
+ */
 export async function PATCH(req: Request) {
     try {
         await connectMongoDB();
@@ -53,7 +84,31 @@ export async function PATCH(req: Request) {
         )
     }
 }
-
+/**
+ * @swagger
+ * /api/credit/{id}:
+ *   delete:
+ *     summary: Delete a credit entry
+ *     description: Deletes a credit entry from the database by its ID.
+ *     tags:
+ *      - Credits
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the credit entry to delete
+ *     responses:
+ *       200:
+ *         description: Successfully deleted the credit entry
+ *       400:
+ *         description: ID is required
+ *       404:
+ *         description: Credit not found
+ *       500:
+ *         description: Internal server error
+ */
 export async function DELETE(req: Request , { params }:{ params:{ id: string}}) {
     try {
         await connectMongoDB();

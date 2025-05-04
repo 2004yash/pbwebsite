@@ -3,7 +3,152 @@ import connectMongoDB from "@/lib/dbConnect";
 import { sihValidate } from "@/lib/server/utils";
 import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { NextResponse } from "next/server";
-
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     TeamLeader:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Team leader's name
+ *         email:
+ *           type: string
+ *           description: Team leader's email address
+ *         phone:
+ *           type: string
+ *           description: Team leader's phone number
+ *         role:
+ *           type: string
+ *           description: Role of the team leader
+ *         enrollment_id:
+ *           type: string
+ *           description: Enrollment ID of the team leader
+ *         course:
+ *           type: string
+ *           description: Course of the team leader
+ *         year_of_study:
+ *           type: string
+ *           description: Year of study of the team leader
+ *         branch:
+ *           type: string
+ *           description: Branch of the team leader
+ *     TeamMember:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Member's name
+ *         email:
+ *           type: string
+ *           description: Member's email address
+ *         phone:
+ *           type: string
+ *           description: Member's phone number
+ *         role:
+ *           type: string
+ *           description: Role of the member
+ *         enrollment_id:
+ *           type: string
+ *           description: Enrollment ID of the member
+ *         course:
+ *           type: string
+ *           description: Course of the member
+ *         year_of_study:
+ *           type: string
+ *           description: Year of study of the member
+ *         branch:
+ *           type: string
+ *           description: Branch of the member
+ *     ProjectInformation:
+ *       type: object
+ *       properties:
+ *         title:
+ *           type: string
+ *           description: Title of the project
+ *         abstract:
+ *           type: string
+ *           description: Abstract of the project
+ *         problem_statement:
+ *           type: string
+ *           description: Problem statement of the project
+ *         tech_stack:
+ *           type: string
+ *           description: Technologies used in the project
+ *     RegistrationRequest:
+ *       type: object
+ *       properties:
+ *         recaptcha_token:
+ *           type: string
+ *           description: reCAPTCHA token for bot verification
+ *         team_info:
+ *           type: object
+ *           properties:
+ *             team_name:
+ *               type: string
+ *               description: Name of the team
+ *             team_leader:
+ *               $ref: '#/components/schemas/TeamLeader'
+ *             team_members:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/TeamMember'
+ *         project_infromation:
+ *           $ref: '#/components/schemas/ProjectInformation'
+ * /api/registration:
+ *   post:
+ *     summary: Registers a team for SIH 2024
+ *     description: Registers a new team by submitting team details, project information, and performing necessary validations.
+ *     tags:
+ *      - Registration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegistrationRequest'
+ *     responses:
+ *       200:
+ *         description: Registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *                 id:
+ *                   type: string
+ *                   description: ID of the registered team
+ *       400:
+ *         description: Validation or missing fields error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Error message
+ *                 error:
+ *                   type: string
+ *                   description: Specific error details
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Error message indicating internal server issue
+ *                 error:
+ *                   type: string
+ *                   description: Detailed error information
+ */
 // Utility functions for format validation
 const validateEmail = (email:string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validatePhone = (phone:string) => /^[6-9]\d{9}$/.test(phone);

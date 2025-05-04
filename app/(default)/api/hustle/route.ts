@@ -1,8 +1,18 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import axios from "axios";
 import connectMongoDB from "@/lib/dbConnect";
 import { LatestModel, LeaderboardModel } from "@/models/PbHustel";
-import { lead } from "@/app/(default)/api/hustle/leaderboard"; // Change .js to .ts
+// import { lead } from "@/app/(default)/api/hustle/leaderboard";
+import FireCrawlApp from "@mendable/firecrawl-js";
+import {
+  parseVJudgeContests,
+  getLatestContestId,
+  VJudgeContest,
+} from "@/lib/server/vjudgeParser";
+import { parseContestData } from "@/app/(default)/api/hustle/leaderboard";
+// import updateLeaderboard from "@/lib/server/test";
 
 interface ContestRanking {
   rank: number;
@@ -23,39 +33,72 @@ interface LeaderboardData {
   lastContestCode?: string;
 }
 
+/**
+ * @swagger
+ * /api/hustle/update:
+ *   post:
+ *     summary: Fetches and updates the leaderboard from VJudge.
+ *     description: Fetches contest data from VJudge API, updates the leaderboard, and stores it in the database.
+ *     tags:
+ *      - Hustle
+ *     responses:
+ *       200:
+ *         description: Successfully updated leaderboard
+ *       400:
+ *         description: Invalid response from VJudge or missing data.
+ *       500:
+ *         description: Error while processing or updating data.
+ */
+
+// export async function PUT () {
+//     await updateLeaderboard();
+//     return NextResponse.json({ message: "Leaderboard update initiated." }, { status: 200 });
+// }
+
 export async function POST() {
   try {
     await connectMongoDB();
 
-    const API_URL =
-      process.env.VJUDGE_CONTEST_API ||
-      "https://vjudge.net/contest/data?draw=2&start=0&length=20&sortDir=desc&sortCol=0&category=mine&running=3&title=&owner=Pbhustle&_=1733642420751";
+    // Use FireCrawl to scrape contest data from VJudge
+    const app = new FireCrawlApp({
+      apiKey: process.env.FIRECRAWL_API_KEY,
+    });
 
-    // Add headers to mimic a browser request
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Referer': 'https://vjudge.net/',
-      'Origin': 'https://vjudge.net',
-      'Cookie': process.env.VJUDGE_COOKIE || 'JSESSlONID=7YP9VCUCK4ZTTTNQO0U0OQFW6ZDHMJXV; _ga=GA1.1.533089565.1728634731; Jax.Q=04yash|PMVRLFQGIPE5GOTC1SGE6B4W785LQJ; __gads=ID=99f1126d6fe46914:T=1728634731:RT=1737718428:S=ALNI_Mb_KPRQ0uquyzQSN44fpJKwUo53GA; __gpi=UID=00000f3e7503e3cd:T=1728634731:RT=1737718428:S=ALNI_Mb0ueGqLg2jRi_frTwTAZsUQqg_wQ; __eoi=ID=9732350f6625bc1b:T=1728634731:RT=1737718428:S=AA-AfjZnX0ZhSiL1BHBPEMWVFpeh; cf_clearance=rHe4M.4i47txtgYJQPXs0a.LnH.QYSRELQUQKvBeHv0-1737728607-1.2.1.1-QS6DaWVn4ZlR0CDzelDl644mlMOCZU1ty_NqdHf68O5PjZEOniNFWXUEEk3GrVQj0CwVlOScM6DpclcDaZKTv39_vxVd.tdzDDdfI3hBk.BKBOopC_pgojfmWDpHxvMqGBJbqfcoq36wQJQchRX4B0.IUalcf8OnqtyKwFa6mOj1a1oNoBst3jz_nVLMzWjzzQsxtJmhLlSGveAigCmovzVeHuJsXGSGifWipcLBKO2U_QCnzDVWlZ5N0Rqs7qlOPhzT9xmvceNQGlIZLoINYpq5_WyfCbumeC6XsX0i.H4; FCNEC=%5B%5B%22AKsRol-aSOdWtkNjxLPUwAZiyc5kmxDI81NA-AWYxiD_dMfHxJZ0hX5MBVRm9H0Pb0bLbRu7vmWOG3ZJAKwynbFz-3CLj98y_Ps-u7uC3PX4myF02jFz23muu0K9r3Xot0YQRKs-gKcJoQetbuaLAVrOLTIdtXKr4w%3D%3D%22%5D%5D; JSESSIONID=E55418E82CB952060BE04F7A459FD1FF; _ga_374JLX1715=GS1.1.1737728605.51.1.1737729138.60.0.0',
-    };
+    const scrapeResult = await app.scrapeUrl(
+      "https://vjudge.net/contest#category=public&running=0&title=&owner=Pbhustle",
+      {
+        formats: ["markdown"],
+      }
+    );
 
-    const { data } = await axios.get(API_URL, { headers });
-    
-    if (!data || !data.data || !data.data[0]) {
-      console.error("Invalid response format from VJudge");
-      return NextResponse.json({ 
-        error: "Invalid response from VJudge",
-        details: "No contest data available"
-      }, { status: 400 });
+    // Check if we have markdown content in the response
+    if (!("markdown" in scrapeResult) || !scrapeResult.markdown) {
+      return NextResponse.json(
+        {
+          error: "Failed to scrape contest data",
+          message: "No markdown content in response",
+        },
+        { status: 400 }
+      );
     }
 
-    const ccode = data.data[0][0];
-    const { data: rankData } = await axios.get(
-      `https://vjudge.net/contest/rank/single/${ccode}`,
-      { headers }
-    );
+    // Parse the markdown to extract contest data using our utility function
+    const contests = parseVJudgeContests(scrapeResult.markdown);
+
+    console.log("Contests:", contests);
+
+    // Get the latest contest ID
+    const latestContestId = getLatestContestId(contests);
+
+    if (!latestContestId) {
+      return NextResponse.json(
+        {
+          error: "Failed to get the contest ID",
+          message: "Contest ID not found",
+        },
+        { status: 400 }
+      );
+    }
 
     const leaderboardDoc = await LeaderboardModel.findOne({
       name: "leaderboard",
@@ -63,24 +106,41 @@ export async function POST() {
 
     const existingData = leaderboardDoc as LeaderboardData | undefined;
     const lastContestCode = existingData?.lastContestCode;
-    console.log("Last contest code", lastContestCode);
-    console.log("Current contest code", ccode);
-    
-    if (Number(lastContestCode) == Number(ccode)) {
+
+    if (Number(lastContestCode) == Number(latestContestId)) {
       console.log("Leaderboard is already up-to-date.");
       return NextResponse.json({
         message: "Leaderboard is already up-to-date.",
       });
     }
 
-    const contestLengthInSeconds = rankData.length / 1000;
-    const boardRankings = lead(rankData, contestLengthInSeconds);
+    const scrapeResult2 = await app.scrapeUrl(
+      `https://vjudge.net/contest/${Number(latestContestId)}#rank`,
+      {
+        formats: ["markdown"],
+      }
+    );
 
-    const latest: ContestRanking[] = boardRankings.map((user, index) => ({
-      rank: index + 1,
-      name: `${user.nam} (${user.disp})`,
-      score: user.tot,
-    }));
+    // Check if we have markdown content in the second response
+    if (!("markdown" in scrapeResult2) || !scrapeResult2.markdown) {
+      return NextResponse.json(
+        {
+          error: "Failed to scrape contest details",
+          message: "No markdown content in response",
+        },
+        { status: 400 }
+      );
+    }
+
+    const contestDetails = parseContestData(scrapeResult2.markdown);
+
+    const latest: ContestRanking[] = contestDetails.participants.map(
+      (user, index) => ({
+        rank: index + 1,
+        name: user.username.replace(/\\/g, ""),
+        score: user.score,
+      })
+    );
 
     await LatestModel.findOneAndUpdate(
       { name: "latest" },
@@ -123,32 +183,53 @@ export async function POST() {
         $set: {
           rankings: leaderboardRankings,
           updatedAt: new Date(),
-          lastContestCode: ccode,
+          lastContestCode: latestContestId,
         },
       },
       { upsert: true }
     );
 
-    return NextResponse.json({
-      message: "Leaderboard updated successfully",
-      rankings: leaderboardRankings,
-    });
+    return NextResponse.json(
+      {
+        message: "Leaderboard updated successfully",
+        data: {
+          latestContestId,
+          latestContestTitle: contestDetails.title,
+          latestContestBeginTime: contestDetails.beginTime,
+          latestContestEndTime: contestDetails.endTime,
+          latestContestDuration: contestDetails.duration,
+          latestContestStatus: contestDetails.status,
+          lastContestCode: latestContestId,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
-    if (axios.isAxiosError(error)) {
-      console.error("API Error:", error.response?.data || error.message);
-    } else {
-      console.error("API Error:", error);
-    }
-    return NextResponse.json({ 
-      error: "Failed to update leaderboard",
-      details: error.response?.data || error.message,
-      status: error.response?.status || 500
-    }, { 
-      status: error.response?.status || 500 
-    });
+    console.error("Error during scraping:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to update leaderboard",
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
 
+/**
+ * @swagger
+ * /api/hustle/fetch:
+ *   get:
+ *     summary: Fetches the latest and leaderboard data from the database.
+ *     description: Fetches the latest contest results and leaderboard rankings from the database.
+ *     tags:
+ *      - Hustle
+ *     responses:
+ *       200:
+ *         description: Successfully fetched hustle data
+ *       500:
+ *         description: Error while fetching data from the database.
+ */
 export async function GET() {
   try {
     await connectMongoDB();
@@ -157,18 +238,27 @@ export async function GET() {
       name: "leaderboard",
     });
 
-    return NextResponse.json({
-      message: "Fetched hustle data successfully",
-      data: {
-        latest: latestDoc,
-        leaderboard: leaderboardDoc,
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        message: "Fetched hustle data successfully",
+        data: {
+          latest: latestDoc,
+          leaderboard: leaderboardDoc,
+        },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error: any) {
     console.error("Database error:", error);
-    return NextResponse.json({ 
-      error: "Failed to fetch hustle data",
-      details: error.message 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to fetch hustle data",
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

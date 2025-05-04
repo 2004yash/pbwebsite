@@ -2,7 +2,55 @@ import { NextResponse } from "next/server";
 import Eventmodel from "@/models/Events";
 import connectMongoDB from "@/lib/dbConnect";
 import { v4 as uuidv4 } from "uuid";
-
+import { cloudinary } from '@/Cloudinary';
+/**
+ * @swagger
+ * /api/events:
+ *   get:
+ *     summary: Retrieve all events
+ *     description: Fetches all stored events from the database.
+ *     tags:
+ *       - Events
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the list of events.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 events:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       eventName:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       eventDate:
+ *                         type: string
+ *                         format: date
+ *                       lastDateOfRegistration:
+ *                         type: string
+ *                         format: date
+ *                       dateCreated:
+ *                         type: string
+ *                         format: date-time
+ *                       dateModified:
+ *                         type: string
+ *                         format: date-time
+ *                       imageURL:
+ *                         type: string
+ *                         format: uri
+ *                       registrationLink:
+ *                         type: string
+ *                         format: uri
+ *       500:
+ *         description: Internal server error
+ */
 // Helper function to validate event data
 const validateEvent = (event: any) => {
   const errors: string[] = [];
@@ -63,7 +111,45 @@ const validateEvent = (event: any) => {
 
   return errors;
 };
-
+/**
+ * @swagger
+ * /api/events:
+ *   post:
+ *     summary: Create a new event
+ *     description: Adds a new event to the database.
+ *     tags:
+ *       - Events
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               eventName:
+ *                 type: string
+ *               eventDate:
+ *                 type: string
+ *                 format: date
+ *               lastDateOfRegistration:
+ *                 type: string
+ *                 format: date
+ *               description:
+ *                 type: string
+ *               imageURL:
+ *                 type: string
+ *                 format: uri
+ *               registrationLink:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       201:
+ *         description: Successfully created an event.
+ *       400:
+ *         description: Validation error.
+ *       500:
+ *         description: Internal server error.
+ */
 // GET request
 export async function GET(request: Request) {
   await connectMongoDB();
@@ -99,7 +185,53 @@ export async function GET(request: Request) {
     }
   }
 }
-
+/**
+ * @swagger
+ * /api/events:
+ *   put:
+ *     summary: Update an existing event
+ *     description: Updates an event in the database based on event ID.
+ *     tags:
+ *       - Events
+ *     parameters:
+ *       - name: eventid
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               eventName:
+ *                 type: string
+ *               eventDate:
+ *                 type: string
+ *                 format: date
+ *               lastDateOfRegistration:
+ *                 type: string
+ *                 format: date
+ *               description:
+ *                 type: string
+ *               imageURL:
+ *                 type: string
+ *                 format: uri
+ *               registrationLink:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       200:
+ *         description: Event updated successfully.
+ *       400:
+ *         description: Validation error or missing event ID.
+ *       404:
+ *         description: Event not found.
+ *       500:
+ *         description: Internal server error.
+ */
 // POST request
 export async function POST(request: Request) {
   try {
@@ -133,6 +265,28 @@ export async function POST(request: Request) {
     );
   }
 }
+/**
+ * @swagger
+ * /api/events:
+ *   delete:
+ *     summary: Delete an event
+ *     description: Deletes an event from the database based on event ID.
+ *     tags:
+ *       - Events
+ *     parameters:
+ *       - name: eventid
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Event deleted successfully.
+ *       400:
+ *         description: Missing event ID.
+ *       500:
+ *         description: Internal server error.
+ */
 // PUT request
 export async function PUT(request: Request) {
   try {
@@ -199,6 +353,38 @@ export async function DELETE(request: Request) {
         { error: "Event ID is required" },
         { status: 400 }
       );
+    }
+    const event = await Eventmodel.findOne({ id: eventid });
+    
+    if (!event) {
+      return NextResponse.json(
+        { error: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    // If there's an image URL, delete it from Cloudinary
+    if (event.imageURL) {
+      try {
+        // Extract public_id from the Cloudinary URL
+        const matches = event.imageURL.match(/\/v\d+\/(.+?)\./);
+        const publicId = matches ? matches[1] : null;
+
+        if (publicId) {
+          console.log('Attempting to delete image with public ID:', publicId);
+          const result = await cloudinary.uploader.destroy(publicId);
+          console.log('Cloudinary deletion result:', result);
+        } else {
+          console.warn('Could not extract public ID from URL:', event.imageURL);
+        }
+      } catch (cloudinaryError) {
+        console.error("Error deleting image from Cloudinary:", cloudinaryError);
+        // Log detailed error for debugging
+        if (cloudinaryError instanceof Error) {
+          console.error("Error details:", cloudinaryError.message);
+        }
+        // Continue with event deletion even if image deletion fails
+      }
     }
 
     await Eventmodel.deleteOne({ id: eventid });

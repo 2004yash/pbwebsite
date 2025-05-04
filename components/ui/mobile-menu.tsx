@@ -5,6 +5,7 @@ import { Transition } from '@headlessui/react';
 import Link from 'next/link';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/Firebase';
+import { useStore } from "@/lib/zustand/store";
 
 
 export default function MobileMenu() {
@@ -14,10 +15,14 @@ export default function MobileMenu() {
   const trigger = useRef<HTMLButtonElement>(null);
   const mobileNav = useRef<HTMLDivElement>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const { reset } = useStore();
 
   const handleLogout = async () => {
+    
     await auth.signOut();
     setLoggedIn(false);
+    reset();
+    
   }
 
   useEffect(() => {
@@ -105,9 +110,9 @@ export default function MobileMenu() {
           leaveTo="opacity-0"
         >
           <ul className="px-5 py-2">
-            {/* <li>
+            <li>
               <Link href="/events" className="flex font-medium w-full text-gray-300 hover:text-white py-2 justify-center" onClick={() => setMobileNavOpen(false)}>Events</Link>
-            </li> */}
+            </li>
             <li>
               <Link href="/leads" className="flex font-medium w-full text-gray-300 hover:text-white py-2 justify-center" onClick={() => setMobileNavOpen(false)}>Leads</Link>
             </li>
@@ -132,11 +137,7 @@ export default function MobileMenu() {
                 </button>
               </li>
             ) : (
-              <li>
-                <Link href="/login" className="flex font-medium w-full text-gray-300 hover:text-white py-2 justify-center" onClick={() => setMobileNavOpen(false)}>
-                  Login
-                </Link>
-              </li>
+              <></>
             )}
           </ul>
         </Transition>
