@@ -2,8 +2,8 @@ name: Schedule Leaderboard Update
 
 on:
   schedule:
-    # Runs at 18:15 UTC (11:45 PM IST) every day
-    - cron: '15 18 * * *'
+    # Runs at 18:25 UTC (11:55 PM IST) every day
+    - cron: "25 18 * * *"
 
 jobs:
   update-leaderboard:
