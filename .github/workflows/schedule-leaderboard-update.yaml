@@ -3,12 +3,38 @@ name: Schedule Leaderboard Update
 on:
   schedule:
     # Runs at 18:25 UTC (11:55 PM IST) every day
-    - cron: "25 18 * * *"
+    - cron: "35 18 * * *"
+  # Manual trigger option
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual trigger"
+        required: false
+        default: "Manual testing"
+
+permissions:
+  contents: read
 
 jobs:
   update-leaderboard:
     runs-on: ubuntu-latest
     steps:
+      - name: Check current time
+        run: |
+          echo "Current time: $(date)"
+          echo "Current UTC time: $(date -u)"
+
       - name: Update Leaderboard
         run: |
-          curl -X POST https://pointblank.club/api/hustle
+          echo "Sending request to update leaderboard..."
+          response=$(curl -X POST https://pointblank.club/api/hustle -H "Content-Type: application/json" -w "\n%{http_code}" -o response.txt)
+          status_code=$(echo "$response" | tail -n1)
+          echo "Response status code: $status_code"
+          if [[ $status_code == 2* ]]; then
+            echo "Leaderboard update triggered successfully"
+            cat response.txt
+          else
+            echo "Failed to update leaderboard. Status code: $status_code"
+            cat response.txt
+            exit 1
+          fi
