@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import connectMongoDB from "@/lib/dbConnect";
 import { LatestModel, LeaderboardModel } from "@/models/PbHustel";
-import { lead } from "@/app/(default)/api/hustle/leaderboard";
+// import { lead } from "@/app/(default)/api/hustle/leaderboard";
 import FireCrawlApp from "@mendable/firecrawl-js";
 import {
   parseVJudgeContests,
@@ -12,7 +12,7 @@ import {
   VJudgeContest,
 } from "@/lib/server/vjudgeParser";
 import { parseContestData } from "@/app/(default)/api/hustle/leaderboard";
-import updateLeaderboard from "@/lib/server/test";
+// import updateLeaderboard from "@/lib/server/test";
 
 interface ContestRanking {
   rank: number;
@@ -50,11 +50,10 @@ interface LeaderboardData {
  *         description: Error while processing or updating data.
  */
 
-export async function PUT () {
-    await updateLeaderboard();
-    return NextResponse.json({ message: "Leaderboard update initiated." }, { status: 200 });
-}
-
+// export async function PUT () {
+//     await updateLeaderboard();
+//     return NextResponse.json({ message: "Leaderboard update initiated." }, { status: 200 });
+// }
 
 export async function POST() {
   try {
@@ -62,8 +61,7 @@ export async function POST() {
 
     // Use FireCrawl to scrape contest data from VJudge
     const app = new FireCrawlApp({
-      apiKey:
-        process.env.FIRECRAWL_API_KEY,
+      apiKey: process.env.FIRECRAWL_API_KEY,
     });
 
     const scrapeResult = await app.scrapeUrl(
@@ -72,6 +70,17 @@ export async function POST() {
         formats: ["markdown"],
       }
     );
+
+    // Check if we have markdown content in the response
+    if (!("markdown" in scrapeResult) || !scrapeResult.markdown) {
+      return NextResponse.json(
+        {
+          error: "Failed to scrape contest data",
+          message: "No markdown content in response",
+        },
+        { status: 400 }
+      );
+    }
 
     // Parse the markdown to extract contest data using our utility function
     const contests = parseVJudgeContests(scrapeResult.markdown);
@@ -112,13 +121,24 @@ export async function POST() {
       }
     );
 
+    // Check if we have markdown content in the second response
+    if (!("markdown" in scrapeResult2) || !scrapeResult2.markdown) {
+      return NextResponse.json(
+        {
+          error: "Failed to scrape contest details",
+          message: "No markdown content in response",
+        },
+        { status: 400 }
+      );
+    }
+
     const contestDetails = parseContestData(scrapeResult2.markdown);
 
     const latest: ContestRanking[] = contestDetails.participants.map(
       (user, index) => ({
-      rank: index + 1,
-      name: user.username.replace(/\\/g, ''),
-      score: user.score,
+        rank: index + 1,
+        name: user.username.replace(/\\/g, ""),
+        score: user.score,
       })
     );
 
@@ -168,7 +188,6 @@ export async function POST() {
       },
       { upsert: true }
     );
-
 
     return NextResponse.json(
       {
