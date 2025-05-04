@@ -27,7 +27,8 @@ jobs:
       - name: Update Leaderboard
         run: |
           echo "Sending request to update leaderboard..."
-          response=$(curl -X POST https://pointblank.club/api/hustle -H "Content-Type: application/json" -w "\n%{http_code}" -o response.txt)
+          # -L flag tells curl to follow redirects
+          response=$(curl -L -X POST https://www.pointblank.club/api/hustle -H "Content-Type: application/json" -w "\n%{http_code}" -o response.txt)
           status_code=$(echo "$response" | tail -n1)
           echo "Response status code: $status_code"
           if [[ $status_code == 2* ]]; then
