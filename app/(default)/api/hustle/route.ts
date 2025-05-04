@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import connectMongoDB from "@/lib/dbConnect";
 import { LatestModel, LeaderboardModel } from "@/models/PbHustel";
-// import { lead } from "@/app/(default)/api/hustle/leaderboard";
+import { lead } from "@/app/(default)/api/hustle/leaderboard";
 import FireCrawlApp from "@mendable/firecrawl-js";
 import {
   parseVJudgeContests,
@@ -12,6 +12,7 @@ import {
   VJudgeContest,
 } from "@/lib/server/vjudgeParser";
 import { parseContestData } from "@/app/(default)/api/hustle/leaderboard";
+import updateLeaderboard from "@/lib/server/test";
 
 interface ContestRanking {
   rank: number;
@@ -48,6 +49,13 @@ interface LeaderboardData {
  *       500:
  *         description: Error while processing or updating data.
  */
+
+export async function PUT () {
+    await updateLeaderboard();
+    return NextResponse.json({ message: "Leaderboard update initiated." }, { status: 200 });
+}
+
+
 export async function POST() {
   try {
     await connectMongoDB();
@@ -55,7 +63,7 @@ export async function POST() {
     // Use FireCrawl to scrape contest data from VJudge
     const app = new FireCrawlApp({
       apiKey:
-        process.env.FIRECRAWL_API_KEY || "fc-54fe44c6ceb749beaf0667e3e733c472",
+        process.env.FIRECRAWL_API_KEY,
     });
 
     const scrapeResult = await app.scrapeUrl(
