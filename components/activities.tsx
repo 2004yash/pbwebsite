@@ -14,7 +14,7 @@ interface ActivityCardProps {
 interface ActivityData {
   Title: string;
   Subtitle: string | ReactNode;
-  Image: string[];  // Note this is Image, not ImageSrc
+  Image: string[]; // Note this is Image, not ImageSrc
   Description: string;
 }
 
@@ -23,15 +23,16 @@ const activityData: ActivityData[] = [
     Title: "CP Contests",
     Subtitle: (
       <>
-        <a
-          href="/hustle"
-          className=" hover:underline"
-        >
+        <a href="https://pb-cron.vercel.app/" className=" hover:underline">
           PB Hustle
         </a>
       </>
     ),
-    Image: ["/images/cp.webp", "/images/pbhustle1.webp", "/images/pbhustle2.webp"],
+    Image: [
+      "/images/cp.webp",
+      "/images/pbhustle1.webp",
+      "/images/pbhustle2.webp",
+    ],
     Description:
       "Since its inception in 2019, Point Blank has produced two Candidate Masters, one 6-star coder, and more than ten Experts. Within one year, participation in coding contests grew from just 3 to over 70. In 2020, we qualified the first-ever team from our college to ICPC Regionals and have sent at least one team every year since. Our members have earned multiple top-250 finishes in Google KickStart and reached Round 3 in Meta HackerCup. Additionally, to strengthen coding culture within our college, we organize PB Hustle, an open-to-all competitive programming contest held weekly, completing over 100 editions to date.",
   },
@@ -52,14 +53,23 @@ const activityData: ActivityData[] = [
   {
     Title: "Open Source",
     Subtitle: "Google Summer of Code",
-    Image: ["/images/gsocact.webp", "/images/LFX.webp", "/images/githubExtern.webp"],
+    Image: [
+      "/images/gsocact.webp",
+      "/images/LFX.webp",
+      "/images/githubExtern.webp",
+    ],
     Description:
-    " Point Blank has cultivated a vibrant open-source community, with our members achieving notable success in prestigious programs like Google Summer of Code (GSOC). In the past five years, we have had 20+ successful GSOC participants, 10+ Linux Foundation Training (LiFT) scholars, 3 LFX scholars, and 8 GitHub Externs.",
+      " Point Blank has cultivated a vibrant open-source community, with our members achieving notable success in prestigious programs like Google Summer of Code (GSOC). In the past five years, we have had 20+ successful GSOC participants, 10+ Linux Foundation Training (LiFT) scholars, 3 LFX scholars, and 8 GitHub Externs.",
   },
   {
     Title: "Cybersecurity",
     Subtitle: "PB CTF",
-    Image: ["/images/ctf4.webp", "/images/ctf1.webp", "/images/ctf2.webp", "/images/ctf3.webp"],
+    Image: [
+      "/images/ctf4.webp",
+      "/images/ctf1.webp",
+      "/images/ctf2.webp",
+      "/images/ctf3.webp",
+    ],
     Description:
       "We organize workshops and sessions on various topics in cybersecurity, including hands-on practice on different platforms. In 2023, we launched the first in-house Capture The Flag event, PBCTF, which attracted over 70+ participants.",
   },

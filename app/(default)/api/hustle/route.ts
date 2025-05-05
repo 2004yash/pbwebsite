@@ -11,7 +11,7 @@ import {
   getLatestContestId,
   VJudgeContest,
 } from "@/lib/server/vjudgeParser";
-import { parseContestData } from "@/app/(default)/api/hustle/leaderboard";
+import { parseContestData } from "@/lib/server/leaderboard";
 // import updateLeaderboard from "@/lib/server/test";
 
 interface ContestRanking {
@@ -231,6 +231,7 @@ export async function POST() {
  *         description: Error while fetching data from the database.
  */
 export async function GET() {
+  const dynamic = "force-dynamic";
   try {
     await connectMongoDB();
     const latestDoc = await LatestModel.findOne({ name: "latest" });

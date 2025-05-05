@@ -58,7 +58,7 @@ Use:
 ```bash
 infisical run -- npm run dev
 ```
-#### Tip: To simplify this process, you can create aliases for commonly used commands.** 
+#### Tip: To simplify this process, you can create aliases for commonly used commands. 
 ---
 
 ## **Contributing**  
@@ -82,6 +82,34 @@ infisical run -- npm run dev
    ```  
 
 Check the [Issues](https://github.com/pbdsce/pbwebsite/issues) page for tasks you can pick up!  
+
+
+## ✅ Automated Pull Request Checks
+
+This repository uses GitHub Actions to enforce code hygiene and PR size tracking.
+
+### 🔹 PR Size Labels
+PRs are automatically labeled based on the number of added/changed lines:
+
+| Label | Lines of Code |
+|-------|----------------|
+| XS    | 0–9            |
+| S     | 10–49          |
+| M     | 50–199         |
+| L     | 200–499        |
+| XL    | 500+           |
+
+### 🔹 Merge Commit Check
+To avoid polluting the Git history, PRs are scanned for **merge commits**. If found, the workflow will fail.
+
+✅ **Use this instead of merging**:
+- `git pull --rebase`
+- `git rebase main` before pushing
+
+### 🔹 Git Fetch Depth
+The `checkout` step uses `fetch-depth: 0` to fetch the full commit history.  
+This is required for merge commit checks to work properly.
+
 
 ---
 
@@ -117,6 +145,4 @@ Additionally, the PR Command Bot automatically processes:
 ## **Contact**  
 If you have any questions or need assistance, feel free to reach out to the maintainers.  
 
-Let's build something amazing! 🚀  
-
----
+Let's build something amazing! 🚀
