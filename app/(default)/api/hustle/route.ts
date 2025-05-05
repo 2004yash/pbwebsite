@@ -11,7 +11,7 @@ import {
   getLatestContestId,
   VJudgeContest,
 } from "@/lib/server/vjudgeParser";
-import { parseContestData } from "@/app/(default)/api/hustle/leaderboard";
+import { parseContestData } from "@/lib/server/leaderboard";
 // import updateLeaderboard from "@/lib/server/test";
 
 interface ContestRanking {
